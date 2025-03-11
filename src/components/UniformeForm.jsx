@@ -1,4 +1,3 @@
-// admin-panel/src/components/UniformeForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -7,10 +6,13 @@ import './UniformeForm.css';
 const UniformeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [uniforme, setUniforme] = useState({ nombre: '', descripcion: '', categoria: '' });
-  const [foto, setFoto] = useState(null);
+  const [uniforme, setUniforme] = useState({ nombre: '', descripcion: '', categoria: '', tipo: '', foto: null });
+  const [fotoPreview, setFotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Usamos la variable de entorno para la URL base de la API
+  const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (id) {
@@ -21,15 +23,27 @@ const UniformeForm = () => {
   const fetchUniforme = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/uniformes/${id}`);
-      setUniforme({
-        nombre: response.data.data.nombre,
-        descripcion: response.data.data.descripcion,
-        categoria: response.data.data.categoria,
+      const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
       });
+      console.log('Respuesta de la API para uniforme:', response.data);
+      const data = response.data;
+      setUniforme({
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        categoria: data.categoria,
+        tipo: data.tipo || '',
+        foto: null,
+      });
+      if (data.foto_path) {
+        setFotoPreview(`${apiUrl}/storage/${data.foto_path}`);
+      }
     } catch (error) {
       setError('Error al obtener el uniforme: ' + error.message);
-      console.error('Error al obtener el uniforme:', error);
+      console.error('Error al obtener el uniforme:', error.response?.data || error);
+      console.log('Respuesta completa del error:', error.response);
     } finally {
       setLoading(false);
     }
@@ -41,7 +55,11 @@ const UniformeForm = () => {
   };
 
   const handleFileChange = (e) => {
-    setFoto(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file) {
+      setUniforme({ ...uniforme, foto: file });
+      setFotoPreview(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -53,24 +71,32 @@ const UniformeForm = () => {
     formData.append('nombre', uniforme.nombre);
     formData.append('descripcion', uniforme.descripcion);
     formData.append('categoria', uniforme.categoria);
-    if (foto) {
-      formData.append('foto', foto);
+    formData.append('tipo', uniforme.tipo);
+
+    if (uniforme.foto) {
+      formData.append('foto', uniforme.foto);
     }
+
+    console.log('Datos enviados al guardar uniforme:', Object.fromEntries(formData));
 
     try {
       if (id) {
-        await axios.put(`http://localhost:8000/api/uniformes/${id}`, formData, {
+        await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post('http://localhost:8000/api/uniformes', formData, {
+        await axios.post(`${apiUrl}/api/uniformes`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
       navigate('/');
     } catch (error) {
-      setError('Error al guardar el uniforme: ' + error.message);
-      console.error('Error al guardar el uniforme:', error);
+      if (error.response && error.response.status === 422) {
+        setError('Validación fallida: ' + JSON.stringify(error.response.data.errors));
+      } else {
+        setError('Error al guardar el uniforme: ' + error.message);
+      }
+      console.error('Error al guardar el uniforme:', error.response?.data || error);
     } finally {
       setLoading(false);
     }
@@ -119,7 +145,20 @@ const UniformeForm = () => {
               <option value="Industriales">Industriales</option>
               <option value="Médicos">Médicos</option>
               <option value="Escolares">Escolares</option>
+              <option value="Corporativos">Corporativos</option>
             </select>
+          </div>
+          <div className="form-group">
+            <label>Tipo</label>
+            <input
+              type="text"
+              name="tipo"
+              value={uniforme.tipo}
+              onChange={handleChange}
+              required
+              className="form-input"
+              placeholder="Ej. Overol, Batas, Playeras, Blusas"
+            />
           </div>
           <div className="form-group">
             <label>Foto</label>
@@ -129,8 +168,10 @@ const UniformeForm = () => {
               onChange={handleFileChange}
               accept="image/*"
               className="form-input"
-              required={!id}
             />
+            {fotoPreview && (
+              <img src={fotoPreview} alt="Vista previa" className="preview-img" style={{ maxWidth: '200px', marginTop: '10px' }} />
+            )}
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>
