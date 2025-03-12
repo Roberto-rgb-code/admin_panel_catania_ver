@@ -19,17 +19,13 @@ const UniformesList = () => {
     setLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/api/uniformes`, {
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { 'Accept': 'application/json' },
       });
-      console.log('Respuesta de la API en admin-panel:', response.data);
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
       setUniformes(data);
     } catch (error) {
       setError('Error al obtener uniformes: ' + error.message);
-      console.error('Error al obtener uniformes en admin-panel:', error.response?.data || error);
-      console.log('Respuesta completa del error:', error.response);
+      console.error('Error al obtener uniformes:', error);
     } finally {
       setLoading(false);
     }
@@ -42,7 +38,7 @@ const UniformesList = () => {
         fetchUniformes();
       } catch (error) {
         setError('Error al eliminar el uniforme: ' + error.message);
-        console.error('Error al eliminar el uniforme:', error.response?.data || error);
+        console.error('Error al eliminar el uniforme:', error);
       }
     }
   };
@@ -83,7 +79,6 @@ const UniformesList = () => {
                     style={{ width: '100px', height: '100px', objectFit: 'cover' }}
                     onError={(e) => {
                       e.target.src = 'https://via.placeholder.com/100x100?text=No+image';
-                      console.error('Error loading image:', e);
                     }}
                   />
                 ) : (
@@ -97,7 +92,9 @@ const UniformesList = () => {
                 <p>Tipo: {uniforme.tipo}</p>
                 <div className="uniforme-actions">
                   <Link to={`/editar/${uniforme.id}`} className="btn btn-primary-small">Editar</Link>
-                  <button className="btn btn-secondary-small" onClick={() => handleDelete(uniforme.id)}>Eliminar</button>
+                  <button className="btn btn-secondary-small" onClick={() => handleDelete(uniforme.id)}>
+                    Eliminar
+                  </button>
                 </div>
               </div>
             </div>

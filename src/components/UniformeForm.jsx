@@ -3,6 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './UniformeForm.css';
 
+const apiUrl = import.meta.env.VITE_API_URL;
+console.log("Valor de VITE_API_URL:", apiUrl);
+
+
 const UniformeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,11 +28,8 @@ const UniformeForm = () => {
     setLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, {
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { 'Accept': 'application/json' },
       });
-      console.log('Respuesta de la API para uniforme:', response.data);
       const data = response.data;
       setUniforme({
         nombre: data.nombre,
@@ -42,8 +43,7 @@ const UniformeForm = () => {
       }
     } catch (error) {
       setError('Error al obtener el uniforme: ' + error.message);
-      console.error('Error al obtener el uniforme:', error.response?.data || error);
-      console.log('Respuesta completa del error:', error.response);
+      console.error('Error al obtener el uniforme:', error);
     } finally {
       setLoading(false);
     }
@@ -72,12 +72,9 @@ const UniformeForm = () => {
     formData.append('descripcion', uniforme.descripcion);
     formData.append('categoria', uniforme.categoria);
     formData.append('tipo', uniforme.tipo);
-
     if (uniforme.foto) {
       formData.append('foto', uniforme.foto);
     }
-
-    console.log('Datos enviados al guardar uniforme:', Object.fromEntries(formData));
 
     try {
       if (id) {
@@ -96,7 +93,7 @@ const UniformeForm = () => {
       } else {
         setError('Error al guardar el uniforme: ' + error.message);
       }
-      console.error('Error al guardar el uniforme:', error.response?.data || error);
+      console.error('Error al guardar el uniforme:', error);
     } finally {
       setLoading(false);
     }
