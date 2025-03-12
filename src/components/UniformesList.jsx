@@ -8,7 +8,7 @@ const UniformesList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Usamos la variable de entorno para la URL base de la API
+  // URL base definida en el .env
   const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
@@ -21,6 +21,7 @@ const UniformesList = () => {
       const response = await axios.get(`${apiUrl}/api/uniformes`, {
         headers: { 'Accept': 'application/json' },
       });
+      // Se espera que el backend retorne uniformes con la relación "fotos"
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
       setUniformes(data);
     } catch (error) {
@@ -68,10 +69,20 @@ const UniformesList = () => {
         <p>No hay uniformes registrados.</p>
       ) : (
         <div className="uniformes-grid">
-          {uniformes.map(uniforme => (
+          {uniformes.map((uniforme) => (
             <div key={uniforme.id} className="uniforme-card">
               <div className="uniforme-images">
-                {uniforme.foto_path ? (
+                {uniforme.fotos && uniforme.fotos.length > 0 ? (
+                  <img
+                    src={`${apiUrl}/storage/${uniforme.fotos[0].foto_path}`}
+                    alt={uniforme.nombre}
+                    className="uniforme-image"
+                    style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/100x100?text=No+image';
+                    }}
+                  />
+                ) : uniforme.foto_path ? (
                   <img
                     src={`${apiUrl}/storage/${uniforme.foto_path}`}
                     alt={uniforme.nombre}
@@ -91,8 +102,13 @@ const UniformesList = () => {
                 <p>Categoría: {uniforme.categoria}</p>
                 <p>Tipo: {uniforme.tipo}</p>
                 <div className="uniforme-actions">
-                  <Link to={`/editar/${uniforme.id}`} className="btn btn-primary-small">Editar</Link>
-                  <button className="btn btn-secondary-small" onClick={() => handleDelete(uniforme.id)}>
+                  <Link to={`/editar/${uniforme.id}`} className="btn btn-primary-small">
+                    Editar
+                  </Link>
+                  <button
+                    className="btn btn-secondary-small"
+                    onClick={() => handleDelete(uniforme.id)}
+                  >
                     Eliminar
                   </button>
                 </div>

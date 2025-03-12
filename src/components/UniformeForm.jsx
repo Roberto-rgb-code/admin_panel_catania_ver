@@ -1,22 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './UniformeForm.css';
 
 const apiUrl = import.meta.env.VITE_API_URL;
-console.log("Valor de VITE_API_URL:", apiUrl);
-
 
 const UniformeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [uniforme, setUniforme] = useState({ nombre: '', descripcion: '', categoria: '', tipo: '', foto: null });
-  const [fotoPreview, setFotoPreview] = useState(null);
+
+  // Referencia para el input de archivos
+  const fileInputRef = useRef(null);
+
+  // Estado para los campos de texto del uniforme
+  const [uniforme, setUniforme] = useState({
+    nombre: '',
+    descripcion: '',
+    categoria: '',
+    tipo: '',
+  });
+
+  // Fotos que ya existen en la base de datos (vinculadas al uniforme)
+  const [existingPhotos, setExistingPhotos] = useState([]); 
+  // Archivos nuevos que el usuario selecciona
+  const [newFiles, setNewFiles] = useState([]); 
+  // Vista previa de los archivos nuevos
+  const [newPreviews, setNewPreviews] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Usamos la variable de entorno para la URL base de la API
-  const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (id) {
@@ -31,15 +43,16 @@ const UniformeForm = () => {
         headers: { 'Accept': 'application/json' },
       });
       const data = response.data;
+      // Llenamos los campos del uniforme
       setUniforme({
         nombre: data.nombre,
         descripcion: data.descripcion,
         categoria: data.categoria,
         tipo: data.tipo || '',
-        foto: null,
       });
-      if (data.foto_path) {
-        setFotoPreview(`${apiUrl}/storage/${data.foto_path}`);
+      // Si el backend retorna un array data.fotos, lo guardamos en existingPhotos
+      if (data.fotos && data.fotos.length > 0) {
+        setExistingPhotos(data.fotos);
       }
     } catch (error) {
       setError('Error al obtener el uniforme: ' + error.message);
@@ -49,16 +62,43 @@ const UniformeForm = () => {
     }
   };
 
+  // Manejo de cambios en los inputs de texto
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUniforme({ ...uniforme, [name]: value });
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUniforme({ ...uniforme, foto: file });
-      setFotoPreview(URL.createObjectURL(file));
+  // Dispara el click del input de archivos
+  const handleAddMoreFiles = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Maneja la selección de archivos nuevos
+  const handleFilesChange = (e) => {
+    const files = Array.from(e.target.files);
+    // Agregamos los archivos nuevos a los que ya hubiéramos seleccionado antes
+    setNewFiles(prev => [...prev, ...files]);
+
+    const previews = files.map(file => URL.createObjectURL(file));
+    setNewPreviews(prev => [...prev, ...previews]);
+  };
+
+  // (Opcional) Eliminar una foto existente
+  const handleRemoveExistingPhoto = async (fotoId) => {
+    // Podrías hacer una petición DELETE a algo como: /api/fotos/{fotoId} 
+    // o un endpoint que elimine esa foto en la base de datos. 
+    // Si no quieres un botón de eliminar, omite esto.
+    try {
+      if (!window.confirm('¿Eliminar esta foto?')) return;
+      // Aquí deberías tener un endpoint para eliminar la foto
+      await axios.delete(`${apiUrl}/api/fotos/${fotoId}`);
+      // Quitar la foto del estado existingPhotos
+      setExistingPhotos(prev => prev.filter(f => f.id !== fotoId));
+    } catch (err) {
+      console.error('Error al eliminar la foto:', err);
+      alert('No se pudo eliminar la foto');
     }
   };
 
@@ -72,16 +112,22 @@ const UniformeForm = () => {
     formData.append('descripcion', uniforme.descripcion);
     formData.append('categoria', uniforme.categoria);
     formData.append('tipo', uniforme.tipo);
-    if (uniforme.foto) {
-      formData.append('foto', uniforme.foto);
+
+    // Solo subimos los archivos nuevos 
+    if (newFiles.length > 0) {
+      newFiles.forEach((file, index) => {
+        formData.append(`fotos[${index}]`, file);
+      });
     }
 
     try {
       if (id) {
+        // Actualizar uniforme
         await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
+        // Crear nuevo uniforme
         await axios.post(`${apiUrl}/api/uniformes`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
@@ -157,19 +203,57 @@ const UniformeForm = () => {
               placeholder="Ej. Overol, Batas, Playeras, Blusas"
             />
           </div>
+          {/* Sección de fotos existentes */}
+          {existingPhotos.length > 0 && (
+            <div className="form-group">
+              <label>Fotos existentes</label>
+              <div className="existing-photos">
+                {existingPhotos.map((foto) => (
+                  <div key={foto.id} className="existing-photo">
+                    <img
+                      src={`${apiUrl}/storage/${foto.foto_path}`}
+                      alt="Foto existente"
+                      className="existing-photo-img"
+                    />
+                    {/* Botón para eliminar la foto (opcional) */}
+                    <button
+                      type="button"
+                      className="remove-existing-btn"
+                      onClick={() => handleRemoveExistingPhoto(foto.id)}
+                    >
+                      X
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input oculto para cargar nuevos archivos */}
           <div className="form-group">
-            <label>Foto</label>
+            <label>Nuevas Fotos</label>
             <input
               type="file"
-              name="foto"
-              onChange={handleFileChange}
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              multiple
               accept="image/*"
-              className="form-input"
+              onChange={handleFilesChange}
             />
-            {fotoPreview && (
-              <img src={fotoPreview} alt="Vista previa" className="preview-img" style={{ maxWidth: '200px', marginTop: '10px' }} />
+            <button type="button" className="btn btn-primary" onClick={handleAddMoreFiles}>
+              Agregar más fotos
+            </button>
+            {newPreviews.length > 0 && (
+              <div className="preview-images">
+                {newPreviews.map((src, index) => (
+                  <div key={index} className="preview-image">
+                    <img src={src} alt={`Vista previa ${index}`} className="preview-img" />
+                  </div>
+                ))}
+              </div>
             )}
           </div>
+
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Guardando...' : 'Guardar'}
