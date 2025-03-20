@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './UniformesForm.css';
 
-const apiUrl = import.meta.env.VITE_UNIFORMES_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const UniformesForm = () => {
   const { id } = useParams();
