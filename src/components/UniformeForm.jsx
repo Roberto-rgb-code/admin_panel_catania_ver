@@ -1,12 +1,12 @@
-// admin-panel-uniformes/src/components/UniformesForm.jsx
+// admin-panel-uniformes/src/components/UniformeForm.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './UniformesForm.css';
+import './UniformeForm.css';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const UniformesForm = () => {
+const UniformeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -15,7 +15,7 @@ const UniformesForm = () => {
     nombre: '',
     descripcion: '',
     categoria: '',
-    tipo: '', // Añadimos tipo que está en el backend
+    tipo: '',
   });
 
   const [existingPhotos, setExistingPhotos] = useState([]);
@@ -33,21 +33,21 @@ const UniformesForm = () => {
   const fetchUniforme = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, { // Cambiado a /uniformes
+      const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, {
         headers: { 'Accept': 'application/json' },
       });
       const data = response.data;
       setUniforme({
-        nombre: data.nombre,
-        descripcion: data.descripcion,
-        categoria: data.categoria,
+        nombre: data.nombre || '',
+        descripcion: data.descripcion || '',
+        categoria: data.categoria || '',
         tipo: data.tipo || '',
       });
       if (data.fotos && data.fotos.length > 0) {
         setExistingPhotos(data.fotos);
       }
     } catch (error) {
-      setError('Error al obtener el uniforme: ' + error.message);
+      setError('Error al obtener el uniforme: ' + (error.response?.data?.message || error.message));
       console.error('Error al obtener el uniforme:', error);
     } finally {
       setLoading(false);
@@ -92,7 +92,7 @@ const UniformesForm = () => {
     formData.append('nombre', uniforme.nombre);
     formData.append('descripcion', uniforme.descripcion);
     formData.append('categoria', uniforme.categoria);
-    formData.append('tipo', uniforme.tipo); // Añadimos tipo
+    formData.append('tipo', uniforme.tipo);
 
     if (newFiles.length > 0) {
       newFiles.forEach((file, index) => {
@@ -100,6 +100,7 @@ const UniformesForm = () => {
       });
     }
 
+    // Depuración: Mostrar los datos enviados
     console.log('Datos enviados al backend:', {
       nombre: uniforme.nombre,
       descripcion: uniforme.descripcion,
@@ -110,11 +111,11 @@ const UniformesForm = () => {
 
     try {
       if (id) {
-        await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, { // Cambiado a /uniformes
+        await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post(`${apiUrl}/api/uniformes`, formData, { // Cambiado a /uniformes
+        await axios.post(`${apiUrl}/api/uniformes`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -135,7 +136,7 @@ const UniformesForm = () => {
 
   return (
     <div className="form-container">
-      <h1>{id ? 'Editar Uniforme Destacado' : 'Agregar Uniforme Destacado'}</h1>
+      <h1>{id ? 'Editar Uniforme' : 'Agregar Uniforme'}</h1>
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (
@@ -244,7 +245,7 @@ const UniformesForm = () => {
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => navigate('/')}
+              onChange={() => navigate('/')}
               disabled={loading}
             >
               Cancelar
@@ -256,4 +257,4 @@ const UniformesForm = () => {
   );
 };
 
-export default UniformesForm;
+export default UniformeForm;
