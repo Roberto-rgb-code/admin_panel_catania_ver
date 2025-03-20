@@ -15,6 +15,7 @@ const UniformesForm = () => {
     nombre: '',
     descripcion: '',
     categoria: '',
+    tipo: '', // Añadimos tipo que está en el backend
   });
 
   const [existingPhotos, setExistingPhotos] = useState([]);
@@ -32,7 +33,7 @@ const UniformesForm = () => {
   const fetchUniforme = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes-destacados/${id}`, {
+      const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, { // Cambiado a /uniformes
         headers: { 'Accept': 'application/json' },
       });
       const data = response.data;
@@ -40,6 +41,7 @@ const UniformesForm = () => {
         nombre: data.nombre,
         descripcion: data.descripcion,
         categoria: data.categoria,
+        tipo: data.tipo || '',
       });
       if (data.fotos && data.fotos.length > 0) {
         setExistingPhotos(data.fotos);
@@ -90,6 +92,7 @@ const UniformesForm = () => {
     formData.append('nombre', uniforme.nombre);
     formData.append('descripcion', uniforme.descripcion);
     formData.append('categoria', uniforme.categoria);
+    formData.append('tipo', uniforme.tipo); // Añadimos tipo
 
     if (newFiles.length > 0) {
       newFiles.forEach((file, index) => {
@@ -97,21 +100,21 @@ const UniformesForm = () => {
       });
     }
 
-    // Depuración: Mostrar los datos enviados
     console.log('Datos enviados al backend:', {
       nombre: uniforme.nombre,
       descripcion: uniforme.descripcion,
       categoria: uniforme.categoria,
+      tipo: uniforme.tipo,
       fotos: newFiles.length,
     });
 
     try {
       if (id) {
-        await axios.put(`${apiUrl}/api/uniformes-destacados/${id}`, formData, {
+        await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, { // Cambiado a /uniformes
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post(`${apiUrl}/api/uniformes-destacados`, formData, {
+        await axios.post(`${apiUrl}/api/uniformes`, formData, { // Cambiado a /uniformes
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -175,6 +178,18 @@ const UniformesForm = () => {
               <option value="Escolares">Escolares</option>
               <option value="Corporativos">Corporativos</option>
             </select>
+          </div>
+          <div className="form-group">
+            <label>Tipo</label>
+            <input
+              type="text"
+              name="tipo"
+              value={uniforme.tipo}
+              onChange={handleChange}
+              required
+              className="form-input"
+              placeholder="Ej. Overol, Batas, Playeras, Blusas"
+            />
           </div>
           {existingPhotos.length > 0 && (
             <div className="form-group">
