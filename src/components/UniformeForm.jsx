@@ -1,32 +1,25 @@
+// admin-panel-uniformes/src/components/UniformesForm.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './UniformeForm.css';
+import './UniformesForm.css';
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_UNIFORMES_API_URL;
 
-const UniformeForm = () => {
+const UniformesForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  // Referencia para el input de archivos
   const fileInputRef = useRef(null);
 
-  // Estado para los campos de texto del uniforme
   const [uniforme, setUniforme] = useState({
     nombre: '',
     descripcion: '',
     categoria: '',
-    tipo: '',
   });
 
-  // Fotos que ya existen en la base de datos (vinculadas al uniforme)
-  const [existingPhotos, setExistingPhotos] = useState([]); 
-  // Archivos nuevos que el usuario selecciona
-  const [newFiles, setNewFiles] = useState([]); 
-  // Vista previa de los archivos nuevos
+  const [existingPhotos, setExistingPhotos] = useState([]);
+  const [newFiles, setNewFiles] = useState([]);
   const [newPreviews, setNewPreviews] = useState([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,18 +32,15 @@ const UniformeForm = () => {
   const fetchUniforme = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, {
+      const response = await axios.get(`${apiUrl}/api/uniformes-destacados/${id}`, {
         headers: { 'Accept': 'application/json' },
       });
       const data = response.data;
-      // Llenamos los campos del uniforme
       setUniforme({
         nombre: data.nombre,
         descripcion: data.descripcion,
         categoria: data.categoria,
-        tipo: data.tipo || '',
       });
-      // Si el backend retorna un array data.fotos, lo guardamos en existingPhotos
       if (data.fotos && data.fotos.length > 0) {
         setExistingPhotos(data.fotos);
       }
@@ -62,39 +52,28 @@ const UniformeForm = () => {
     }
   };
 
-  // Manejo de cambios en los inputs de texto
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUniforme({ ...uniforme, [name]: value });
   };
 
-  // Dispara el click del input de archivos
   const handleAddMoreFiles = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // Maneja la selección de archivos nuevos
   const handleFilesChange = (e) => {
     const files = Array.from(e.target.files);
-    // Agregamos los archivos nuevos a los que ya hubiéramos seleccionado antes
     setNewFiles(prev => [...prev, ...files]);
-
     const previews = files.map(file => URL.createObjectURL(file));
     setNewPreviews(prev => [...prev, ...previews]);
   };
 
-  // (Opcional) Eliminar una foto existente
   const handleRemoveExistingPhoto = async (fotoId) => {
-    // Podrías hacer una petición DELETE a algo como: /api/fotos/{fotoId} 
-    // o un endpoint que elimine esa foto en la base de datos. 
-    // Si no quieres un botón de eliminar, omite esto.
     try {
       if (!window.confirm('¿Eliminar esta foto?')) return;
-      // Aquí deberías tener un endpoint para eliminar la foto
       await axios.delete(`${apiUrl}/api/fotos/${fotoId}`);
-      // Quitar la foto del estado existingPhotos
       setExistingPhotos(prev => prev.filter(f => f.id !== fotoId));
     } catch (err) {
       console.error('Error al eliminar la foto:', err);
@@ -111,35 +90,41 @@ const UniformeForm = () => {
     formData.append('nombre', uniforme.nombre);
     formData.append('descripcion', uniforme.descripcion);
     formData.append('categoria', uniforme.categoria);
-    formData.append('tipo', uniforme.tipo);
 
-    // Solo subimos los archivos nuevos 
     if (newFiles.length > 0) {
       newFiles.forEach((file, index) => {
         formData.append(`fotos[${index}]`, file);
       });
     }
 
+    // Depuración: Mostrar los datos enviados
+    console.log('Datos enviados al backend:', {
+      nombre: uniforme.nombre,
+      descripcion: uniforme.descripcion,
+      categoria: uniforme.categoria,
+      fotos: newFiles.length,
+    });
+
     try {
       if (id) {
-        // Actualizar uniforme
-        await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, {
+        await axios.put(`${apiUrl}/api/uniformes-destacados/${id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        // Crear nuevo uniforme
-        await axios.post(`${apiUrl}/api/uniformes`, formData, {
+        await axios.post(`${apiUrl}/api/uniformes-destacados`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
       navigate('/');
     } catch (error) {
       if (error.response && error.response.status === 422) {
-        setError('Validación fallida: ' + JSON.stringify(error.response.data.errors));
+        const validationErrors = error.response.data.errors;
+        setError('Validación fallida: ' + Object.values(validationErrors).flat().join(', '));
+        console.error('Errores de validación del backend:', validationErrors);
       } else {
-        setError('Error al guardar el uniforme: ' + error.message);
+        setError('Error al guardar el uniforme: ' + (error.response?.data?.message || error.message));
       }
-      console.error('Error al guardar el uniforme:', error);
+      console.error('Error completo:', error.response?.data || error);
     } finally {
       setLoading(false);
     }
@@ -147,7 +132,7 @@ const UniformeForm = () => {
 
   return (
     <div className="form-container">
-      <h1>{id ? 'Editar Uniforme' : 'Agregar Uniforme'}</h1>
+      <h1>{id ? 'Editar Uniforme Destacado' : 'Agregar Uniforme Destacado'}</h1>
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (
@@ -191,22 +176,9 @@ const UniformeForm = () => {
               <option value="Corporativos">Corporativos</option>
             </select>
           </div>
-          <div className="form-group">
-            <label>Tipo</label>
-            <input
-              type="text"
-              name="tipo"
-              value={uniforme.tipo}
-              onChange={handleChange}
-              required
-              className="form-input"
-              placeholder="Ej. Overol, Batas, Playeras, Blusas"
-            />
-          </div>
-          {/* Sección de fotos existentes */}
           {existingPhotos.length > 0 && (
             <div className="form-group">
-              <label>Fotos existentes</label>
+              <label>Fotos Existentes</label>
               <div className="existing-photos">
                 {existingPhotos.map((foto) => (
                   <div key={foto.id} className="existing-photo">
@@ -215,7 +187,6 @@ const UniformeForm = () => {
                       alt="Foto existente"
                       className="existing-photo-img"
                     />
-                    {/* Botón para eliminar la foto (opcional) */}
                     <button
                       type="button"
                       className="remove-existing-btn"
@@ -228,8 +199,6 @@ const UniformeForm = () => {
               </div>
             </div>
           )}
-
-          {/* Input oculto para cargar nuevos archivos */}
           <div className="form-group">
             <label>Nuevas Fotos</label>
             <input
@@ -253,7 +222,6 @@ const UniformeForm = () => {
               </div>
             )}
           </div>
-
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Guardando...' : 'Guardar'}
@@ -273,4 +241,4 @@ const UniformeForm = () => {
   );
 };
 
-export default UniformeForm;
+export default UniformesForm;
