@@ -1,4 +1,3 @@
-// admin-panel-uniformes/src/components/UniformeForm.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -33,7 +32,7 @@ const UniformeForm = () => {
   const fetchUniforme = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes/${id}`, {
+      const response = await axios.get(`${apiUrl}/api/uniformes-destacados/${id}`, {
         headers: { 'Accept': 'application/json' },
       });
       const data = response.data;
@@ -89,10 +88,10 @@ const UniformeForm = () => {
     setError(null);
 
     const formData = new FormData();
-    formData.append('nombre', uniforme.nombre);
-    formData.append('descripcion', uniforme.descripcion);
-    formData.append('categoria', uniforme.categoria);
-    formData.append('tipo', uniforme.tipo);
+    if (uniforme.nombre) formData.append('nombre', uniforme.nombre);
+    if (uniforme.descripcion) formData.append('descripcion', uniforme.descripcion);
+    if (uniforme.categoria) formData.append('categoria', uniforme.categoria);
+    if (uniforme.tipo) formData.append('tipo', uniforme.tipo);
 
     if (newFiles.length > 0) {
       newFiles.forEach((file, index) => {
@@ -100,22 +99,15 @@ const UniformeForm = () => {
       });
     }
 
-    // Depuración: Mostrar los datos enviados
-    console.log('Datos enviados al backend:', {
-      nombre: uniforme.nombre,
-      descripcion: uniforme.descripcion,
-      categoria: uniforme.categoria,
-      tipo: uniforme.tipo,
-      fotos: newFiles.length,
-    });
+    console.log('Datos enviados al backend:', [...formData]);
 
     try {
       if (id) {
-        await axios.put(`${apiUrl}/api/uniformes/${id}`, formData, {
+        await axios.put(`${apiUrl}/api/uniformes-destacados/${id}`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       } else {
-        await axios.post(`${apiUrl}/api/uniformes`, formData, {
+        await axios.post(`${apiUrl}/api/uniformes-destacados`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
@@ -150,7 +142,7 @@ const UniformeForm = () => {
               name="nombre"
               value={uniforme.nombre}
               onChange={handleChange}
-              required
+              required={!id} // Obligatorio solo al crear
               className="form-input"
             />
           </div>
@@ -160,7 +152,7 @@ const UniformeForm = () => {
               name="descripcion"
               value={uniforme.descripcion}
               onChange={handleChange}
-              required
+              required={!id} // Obligatorio solo al crear
               className="form-textarea"
             ></textarea>
           </div>
@@ -170,7 +162,7 @@ const UniformeForm = () => {
               name="categoria"
               value={uniforme.categoria}
               onChange={handleChange}
-              required
+              required={!id} // Obligatorio solo al crear
               className="form-select"
             >
               <option value="">Selecciona una categoría</option>
@@ -187,7 +179,7 @@ const UniformeForm = () => {
               name="tipo"
               value={uniforme.tipo}
               onChange={handleChange}
-              required
+              required={!id} // Obligatorio solo al crear
               className="form-input"
               placeholder="Ej. Overol, Batas, Playeras, Blusas"
             />
@@ -202,6 +194,10 @@ const UniformeForm = () => {
                       src={`${apiUrl}/storage/${foto.foto_path}`}
                       alt="Foto existente"
                       className="existing-photo-img"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/100x100?text=No+image';
+                        console.error('Error al cargar imagen:', `${apiUrl}/storage/${foto.foto_path}`);
+                      }}
                     />
                     <button
                       type="button"
@@ -245,7 +241,7 @@ const UniformeForm = () => {
             <button
               type="button"
               className="btn btn-secondary"
-              onChange={() => navigate('/')}
+              onClick={() => navigate('/')} // Corregido de onChange a onClick
               disabled={loading}
             >
               Cancelar
