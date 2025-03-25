@@ -18,7 +18,7 @@ const UniformesList = () => {
   const fetchUniformes = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes-destacados`, {
+      const response = await axios.get(`${apiUrl}/api/uniformes`, {
         headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' },
       });
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
