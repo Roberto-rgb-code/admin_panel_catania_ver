@@ -32,7 +32,7 @@ const UniformeForm = () => {
   const fetchUniforme = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes-destacados/${id}`, {
+      const response = await axios.get(`${apiUrl}/api/${id}`, {
         headers: { 'Accept': 'application/json' },
       });
       const data = response.data;
