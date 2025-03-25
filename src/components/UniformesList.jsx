@@ -1,6 +1,5 @@
-// admin-panel-uniformes/src/components/UniformesList.jsx
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom'; // Añadimos useLocation
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './UniformesList.css';
 
@@ -8,19 +7,19 @@ const UniformesList = () => {
   const [uniformes, setUniformes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const location = useLocation(); // Para detectar cambios en la ruta
+  const location = useLocation();
 
   const apiUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchUniformes();
-  }, [location]); // Recarga al cambiar la ruta
+  }, [location]);
 
   const fetchUniformes = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/uniformes`, {
-        headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }, // Evita caché
+      const response = await axios.get(`${apiUrl}/api/uniformes-destacados`, {
+        headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' },
       });
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
       setUniformes(data);
@@ -35,8 +34,8 @@ const UniformesList = () => {
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este uniforme?')) {
       try {
-        await axios.delete(`${apiUrl}/api/uniformes/${id}`);
-        fetchUniformes(); // Recarga después de eliminar
+        await axios.delete(`${apiUrl}/api/uniformes-destacados/${id}`);
+        fetchUniformes();
       } catch (error) {
         setError('Error al eliminar el uniforme: ' + (error.response?.data?.message || error.message));
         console.error('Error al eliminar el uniforme:', error);
@@ -82,7 +81,7 @@ const UniformesList = () => {
                       style={{ width: '100px', height: '100px', objectFit: 'cover', margin: '5px' }}
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/100x100?text=No+image';
-                        console.error('Error al cargar imagen:', foto.foto_path);
+                        console.error('Error al cargar imagen:', `${apiUrl}/storage/${foto.foto_path}`);
                       }}
                     />
                   ))
@@ -94,7 +93,7 @@ const UniformesList = () => {
                     style={{ width: '100px', height: '100px', objectFit: 'cover' }}
                     onError={(e) => {
                       e.target.src = 'https://via.placeholder.com/100x100?text=No+image';
-                      console.error('Error al cargar imagen:', uniforme.foto_path);
+                      console.error('Error al cargar imagen:', `${apiUrl}/storage/${uniforme.foto_path}`);
                     }}
                   />
                 ) : (
